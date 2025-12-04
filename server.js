@@ -1,0 +1,77 @@
+// Load environment variables FIRST before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import connectDB from './config/db.js';
+import authRoutes from './routes/auth.js';
+import catRoutes from './routes/cats.js';
+import adoptionRoutes from './routes/adoptions.js';
+import recommendationRoutes from './routes/recommendations.js';
+import productRoutes from './routes/products.js';
+import orderRoutes from './routes/orders.js';
+import seedAdmin from './seed/seedAdmin.js';
+import seedCats from './seed/seedCats.js';
+import seedProducts from './seed/seedProducts.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Connect to database
+connectDB();
+
+const app = express();
+
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || [
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/cats', catRoutes);
+app.use('/api/adoptions', adoptionRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ message: 'Server is running', status: 'OK' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: err.message || 'Something went wrong!' });
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, async () => {
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  
+  // Seed database
+  console.log('🌱 Seeding database...');
+  await seedAdmin();
+  await seedCats();
+  await seedProducts();
+  console.log('\n✅ Server ready!\n');
+});
+
+
+
+
