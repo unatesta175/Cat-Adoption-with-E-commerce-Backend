@@ -21,9 +21,6 @@ import seedProducts from './seed/seedProducts.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Connect to database
-connectDB();
-
 const app = express();
 
 // Middleware
@@ -61,18 +58,37 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}\n`);
-  
-  // Seed database
-  console.log('🌱 Seeding database...');
-  await seedAdmin();
-  await seedUsers();
-  await seedCats();
-  await seedProducts();
-  console.log('\n✅ Server ready!\n');
-});
+// Start server after database connection
+const startServer = async () => {
+  try {
+    // Connect to database first
+    await connectDB();
+    
+    // Start server
+    app.listen(PORT, async () => {
+      console.log(`\n🚀 Server running on port ${PORT}`);
+      console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+      
+      // Seed database after connection is established
+      console.log('🌱 Seeding database...');
+      try {
+        await seedAdmin();
+        await seedUsers();
+        await seedCats();
+        await seedProducts();
+        console.log('\n✅ Server ready!\n');
+      } catch (seedError) {
+        console.error('⚠️  Seeding errors (non-critical):', seedError.message);
+        console.log('\n✅ Server ready (seeding skipped)\n');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 
 
